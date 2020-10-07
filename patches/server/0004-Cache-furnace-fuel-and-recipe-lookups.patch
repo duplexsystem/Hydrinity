@@ -1,0 +1,74 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mykyta Komarnytskyy <nkomarn@hotmail.com>
+Date: Wed, 7 Oct 2020 16:37:36 -0700
+Subject: [PATCH] Cache furnace fuel and recipe lookups
+
+Heavily reduces the amount of performance impact furnaces have on the server.
+
+This patch was originally created for the Yatopia project by tr7zw <tr7zw@live.de> and Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
+
+diff --git a/src/main/java/net/minecraft/server/TileEntityFurnace.java b/src/main/java/net/minecraft/server/TileEntityFurnace.java
+index 1d3c2dd93657fb5dc71ee6b444c585b54619d1e8..87db9b7e95d6af9875e30421d0ebf2b0ad5e23e7 100644
+--- a/src/main/java/net/minecraft/server/TileEntityFurnace.java
++++ b/src/main/java/net/minecraft/server/TileEntityFurnace.java
+@@ -35,6 +35,7 @@ public abstract class TileEntityFurnace extends TileEntityContainer implements I
+     protected final IContainerProperties b;
+     private final Object2IntOpenHashMap<MinecraftKey> n;
+     protected final Recipes<? extends RecipeCooking> c;
++    private static Object2IntOpenHashMap<Item> fuelCache; // Hydrinity
+ 
+     protected TileEntityFurnace(TileEntityTypes<?> tileentitytypes, Recipes<? extends RecipeCooking> recipes) {
+         super(tileentitytypes);
+@@ -84,6 +85,11 @@ public abstract class TileEntityFurnace extends TileEntityContainer implements I
+     }
+ 
+     public static Map<Item, Integer> f() {
++        // Hydrinity start
++        if (fuelCache != null) {
++            return fuelCache;
++        }
++        // Hydrinity end
+         Map<Item, Integer> map = Maps.newLinkedHashMap();
+ 
+         a(map, (IMaterial) Items.LAVA_BUCKET, 20000);
+@@ -146,6 +152,7 @@ public abstract class TileEntityFurnace extends TileEntityContainer implements I
+         a(map, (IMaterial) Blocks.FLETCHING_TABLE, 300);
+         a(map, (IMaterial) Blocks.SMITHING_TABLE, 300);
+         a(map, (IMaterial) Blocks.COMPOSTER, 300);
++        fuelCache = new Object2IntOpenHashMap<>(map); // Hydrinity
+         return map;
+     }
+ 
+@@ -271,7 +278,12 @@ public abstract class TileEntityFurnace extends TileEntityContainer implements I
+                     this.cookTime = MathHelper.clamp(this.cookTime - 2, 0, this.cookTimeTotal);
+                 }
+             } else {
+-                IRecipe irecipe = this.world.getCraftingManager().craft((Recipes<RecipeCooking>) this.c, this, this.world).orElse(null); // Eclipse fail
++                // Hydrinity start - use cached recipe if possible, otherwise look up
++                IRecipe irecipe = getCurrentRecipe();
++                if (irecipe == null) {
++                    irecipe = this.world.getCraftingManager().craft((Recipes<RecipeCooking>) this.c, this, this.world).orElse(null); // Eclipse fail
++                }
++                // Hydrinity end
+ 
+                 if (!this.isBurning() && this.canBurn(irecipe)) {
+                     // CraftBukkit start
+@@ -597,4 +609,18 @@ public abstract class TileEntityFurnace extends TileEntityContainer implements I
+         }
+ 
+     }
++
++    // Hydrinity start - cache current recipe
++    private IRecipe currentRecipe;
++
++    @Override
++    public IRecipe getCurrentRecipe() {
++        return currentRecipe;
++    }
++
++    @Override
++    public void setCurrentRecipe(IRecipe currentRecipe) {
++        this.currentRecipe = currentRecipe;
++    }
++    // Hydrinity end
+ }
