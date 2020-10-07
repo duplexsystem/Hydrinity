@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mykyta Komarnytskyy <nkomarn@hotmail.com>
+Date: Wed, 7 Oct 2020 15:23:17 -0700
+Subject: [PATCH] Add server config
+
+
+diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
+index 740a86a808bf0470a755b5f728640557733bfbca..4fe2c19c41e25257cb4962c7ccd75da020e62516 100644
+--- a/src/main/java/org/bukkit/Server.java
++++ b/src/main/java/org/bukkit/Server.java
+@@ -1464,6 +1464,14 @@ public interface Server extends PluginMessageRecipient {
+         }
+         // Tuinity end - add config to timings report
+ 
++        // Hydrinity start - Server config
++        @NotNull
++        public org.bukkit.configuration.file.YamlConfiguration getHydrinityConfig()
++        {
++            throw new UnsupportedOperationException("Not supported yet.");
++        }
++        // Hydrinity end - Server config
++
+         /**
+          * Sends the component to the player
+          *

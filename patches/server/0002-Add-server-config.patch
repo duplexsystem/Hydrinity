@@ -1,0 +1,294 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mykyta Komarnytskyy <nkomarn@hotmail.com>
+Date: Wed, 7 Oct 2020 15:24:43 -0700
+Subject: [PATCH] Add server config
+
+
+diff --git a/src/main/java/co/aikar/timings/TimingsExport.java b/src/main/java/co/aikar/timings/TimingsExport.java
+index 5dfa0658838c4801cdf260eae8b98163f729e5af..d80f6e8ab1af3f84fddb7c5d6e8ef71f88de9114 100644
+--- a/src/main/java/co/aikar/timings/TimingsExport.java
++++ b/src/main/java/co/aikar/timings/TimingsExport.java
+@@ -230,7 +230,8 @@ public class TimingsExport extends Thread {
+             pair("spigot", mapAsJSON(Bukkit.spigot().getSpigotConfig(), null)),
+             pair("bukkit", mapAsJSON(Bukkit.spigot().getBukkitConfig(), null)),
+             pair("paper", mapAsJSON(Bukkit.spigot().getPaperConfig(), null)), // Tuinity - add config to timings report
+-            pair("tuinity", mapAsJSON(Bukkit.spigot().getTuinityConfig(), null)) // Tuinity - add config to timings report
++            pair("tuinity", mapAsJSON(Bukkit.spigot().getTuinityConfig(), null)),// Tuinity - add config to timings report
++            pair("hydrinity", mapAsJSON(Bukkit.spigot().getHydrinityConfig(), null)) // Hydrinity - add config to timings report
+         ));
+ 
+         new TimingsExport(listeners, parent, history).start();
+diff --git a/src/main/java/net/minecraft/server/DedicatedServer.java b/src/main/java/net/minecraft/server/DedicatedServer.java
+index 8542f2f4d2a43e9224fb525723c953f0d179eb40..e45d58b5afbab9f258cc13a0e1df7ef377216fa9 100644
+--- a/src/main/java/net/minecraft/server/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/DedicatedServer.java
+@@ -167,6 +167,7 @@ public class DedicatedServer extends MinecraftServer implements IMinecraftServer
+         com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // load version history now
+         // Paper end
+         com.tuinity.tuinity.config.TuinityConfig.init((java.io.File) options.valueOf("tuinity-settings")); // Tuinity - Server Config
++        xyz.nkomarn.hydrinity.HydrinityConfig.init((java.io.File) options.valueOf("hydrinity-settings")); // Hydrinity - Server Config
+ 
+         this.setPVP(dedicatedserverproperties.pvp);
+         this.setAllowFlight(dedicatedserverproperties.allowFlight);
+diff --git a/src/main/java/net/minecraft/server/World.java b/src/main/java/net/minecraft/server/World.java
+index 51cb07b3d5c2d271e3a17e99ea08428c26d59de1..e3bdbf062defa99a0c7e7d6b12737c3965a0f523 100644
+--- a/src/main/java/net/minecraft/server/World.java
++++ b/src/main/java/net/minecraft/server/World.java
+@@ -95,6 +95,7 @@ public abstract class World implements GeneratorAccess, AutoCloseable {
+     public final ChunkPacketBlockController chunkPacketBlockController; // Paper - Anti-Xray
+ 
+     public final com.tuinity.tuinity.config.TuinityConfig.WorldConfig tuinityConfig; // Tuinity - Server Config
++    public final xyz.nkomarn.hydrinity.HydrinityConfig.WorldConfig hydrinityConfig; // Hydrinity - Server Config
+ 
+     public final co.aikar.timings.WorldTimingsHandler timings; // Paper
+     public static BlockPosition lastPhysicsProblem; // Spigot
+@@ -128,6 +129,7 @@ public abstract class World implements GeneratorAccess, AutoCloseable {
+         this.paperConfig = new com.destroystokyo.paper.PaperWorldConfig((((WorldDataServer)worlddatamutable).getName()), this.spigotConfig); // Paper
+         this.chunkPacketBlockController = this.paperConfig.antiXray ? new ChunkPacketBlockControllerAntiXray(this, executor) : ChunkPacketBlockController.NO_OPERATION_INSTANCE; // Paper - Anti-Xray
+         this.tuinityConfig = new com.tuinity.tuinity.config.TuinityConfig.WorldConfig(((WorldDataServer)worlddatamutable).getName()); // Tuinity - Server Config
++        this.hydrinityConfig = new xyz.nkomarn.hydrinity.HydrinityConfig.WorldConfig(((WorldDataServer)worlddatamutable).getName()); // Hydrinity - Server Config
+         this.generator = gen;
+         this.world = new CraftWorld((WorldServer) this, gen, env);
+         this.ticksPerAnimalSpawns = this.getServer().getTicksPerAnimalSpawns(); // CraftBukkit
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index 786ddcee7edaf32e8e996ab8dcd9cbf11c7f1719..c85096e9c470925a93732f3079e71e5cbc4ee512 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -857,6 +857,7 @@ public final class CraftServer implements Server {
+         org.spigotmc.SpigotConfig.init((File) console.options.valueOf("spigot-settings")); // Spigot
+         com.destroystokyo.paper.PaperConfig.init((File) console.options.valueOf("paper-settings")); // Paper
+         com.tuinity.tuinity.config.TuinityConfig.init((File) console.options.valueOf("tuinity-settings")); // Tuinity - Server Config
++        xyz.nkomarn.hydrinity.HydrinityConfig.init((File) console.options.valueOf("hydrinity-settings")); // Hydrinity - Server Config
+         for (WorldServer world : console.getWorlds()) {
+             world.worldDataServer.setDifficulty(config.difficulty);
+             world.setSpawnFlags(config.spawnMonsters, config.spawnAnimals);
+@@ -892,6 +893,7 @@ public final class CraftServer implements Server {
+             world.spigotConfig.init(); // Spigot
+             world.paperConfig.init(); // Paper
+             world.tuinityConfig.init(); // Tuinity - Server Config
++            world.hydrinityConfig.init(); // Hydrinity - Server Config
+         }
+ 
+         Plugin[] pluginClone = pluginManager.getPlugins().clone(); // Paper
+@@ -2263,6 +2265,14 @@ public final class CraftServer implements Server {
+         }
+         // Tuinity end - add config to timings report
+ 
++        // getHydrinity Start - Server Config
++        @Override
++        public YamlConfiguration getHydrinityConfig()
++        {
++            return xyz.nkomarn.hydrinity.HydrinityConfig.config;
++        }
++        // getHydrinity End - Server Config
++
+         @Override
+         public void restart() {
+             org.spigotmc.RestartCommand.restart();
+diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
+index a9c96d45c69996df33bb6fa09558304735262bdd..dd835286e2ef905e1db8ab8eb78a86813eb54c03 100644
+--- a/src/main/java/org/bukkit/craftbukkit/Main.java
++++ b/src/main/java/org/bukkit/craftbukkit/Main.java
+@@ -146,6 +146,14 @@ public class Main {
+                         .describedAs("Yml file");
+                 /* Conctete End - Server Config */
+ 
++                // Akarin Start - Server Config
++                acceptsAll(asList("hydrinity", "hydrinity-settings"), "File for hydrinity settings")
++                        .withRequiredArg()
++                        .ofType(File.class)
++                        .defaultsTo(new File("hydrinity.yml"))
++                        .describedAs("Yml file");
++                // Akarin End - Server Config
++
+                 // Paper start
+                 acceptsAll(asList("server-name"), "Name of the server")
+                         .withRequiredArg()
+diff --git a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..5945954551c8cea320501fe9246ec96d1ea23679
+--- /dev/null
++++ b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
+@@ -0,0 +1,182 @@
++package xyz.nkomarn.hydrinity;
++
++import org.bukkit.Bukkit;
++import org.bukkit.configuration.ConfigurationSection;
++import org.bukkit.configuration.file.YamlConfiguration;
++
++import java.io.File;
++import java.lang.reflect.Method;
++import java.lang.reflect.Modifier;
++import java.util.List;
++import java.util.logging.Level;
++
++public class HydrinityConfig {
++
++    public static final String CONFIG_HEADER = "Configuration file for Hydrinity.";
++    public static final int CURRENT_CONFIG_VERSION = 1;
++
++    private static final Object[] EMPTY = new Object[0];
++
++    private static File configFile;
++    public static YamlConfiguration config;
++    private static int configVersion;
++
++    public static void init(final File file) {
++        HydrinityConfig.configFile = file;
++        final YamlConfiguration config = new YamlConfiguration();
++        config.options().header(CONFIG_HEADER);
++        config.options().copyDefaults(true);
++
++        if (!file.exists()) {
++            try {
++                file.createNewFile();
++            } catch (final Exception ex) {
++                Bukkit.getLogger().log(Level.SEVERE, "Failure to create Hydrinity config", ex);
++            }
++        } else {
++            try {
++                config.load(file);
++            } catch (final Exception ex) {
++                Bukkit.getLogger().log(Level.SEVERE, "Failure to load Hydrinity config", ex);
++                throw new RuntimeException(ex);
++            }
++        }
++
++        HydrinityConfig.load(config);
++    }
++
++    public static void load(final YamlConfiguration config) {
++        HydrinityConfig.config = config;
++        HydrinityConfig.configVersion = HydrinityConfig.getInt("config-version-please-do-not-modify-me", CURRENT_CONFIG_VERSION);
++        HydrinityConfig.set("config-version-please-do-not-modify-me", CURRENT_CONFIG_VERSION);
++
++        for (final Method method : HydrinityConfig.class.getDeclaredMethods()) {
++            if (method.getReturnType() != void.class || method.getParameterCount() != 0 ||
++                    !Modifier.isPrivate(method.getModifiers()) || !Modifier.isStatic(method.getModifiers())) {
++                continue;
++            }
++
++            try {
++                method.setAccessible(true);
++                method.invoke(null, EMPTY);
++            } catch (final Exception ex) {
++                throw new RuntimeException(ex);
++            }
++        }
++
++        /* We re-save to add new options */
++        try {
++            config.save(HydrinityConfig.configFile);
++        } catch (final Exception ex) {
++            Bukkit.getLogger().log(Level.SEVERE, "Unable to save Hydrinity config", ex);
++        }
++    }
++
++    static void set(final String path, final Object value) {
++        HydrinityConfig.config.set(path, value);
++    }
++
++    static boolean getBoolean(final String path, final boolean dfl) {
++        HydrinityConfig.config.addDefault(path, Boolean.valueOf(dfl));
++        return HydrinityConfig.config.getBoolean(path, dfl);
++    }
++
++    static int getInt(final String path, final int dfl) {
++        HydrinityConfig.config.addDefault(path, Integer.valueOf(dfl));
++        return HydrinityConfig.config.getInt(path, dfl);
++    }
++
++    static long getLong(final String path, final long dfl) {
++        HydrinityConfig.config.addDefault(path, Long.valueOf(dfl));
++        return HydrinityConfig.config.getLong(path, dfl);
++    }
++
++    static double getDouble(final String path, final double dfl) {
++        HydrinityConfig.config.addDefault(path, Double.valueOf(dfl));
++        return HydrinityConfig.config.getDouble(path, dfl);
++    }
++
++    public static final class WorldConfig {
++
++        public final String worldName;
++        public ConfigurationSection config;
++        ConfigurationSection worldDefaults;
++
++        public WorldConfig(final String worldName) {
++            this.worldName = worldName;
++            this.init();
++        }
++
++        public void init() {
++            this.worldDefaults = HydrinityConfig.config.getConfigurationSection("world-settings.default");
++            if (this.worldDefaults == null) {
++                this.worldDefaults = HydrinityConfig.config.createSection("world-settings.default");
++            }
++
++            String worldSectionPath = "world-settings.".concat(this.worldName);
++            ConfigurationSection section = HydrinityConfig.config.getConfigurationSection(worldSectionPath);
++            if (section == null) {
++                section = HydrinityConfig.config.createSection(worldSectionPath);
++            }
++            HydrinityConfig.config.set(worldSectionPath, section);
++
++            this.load(section);
++        }
++
++        public void load(final ConfigurationSection config) {
++            this.config = config;
++
++            for (final Method method : HydrinityConfig.WorldConfig.class.getDeclaredMethods()) {
++                if (method.getReturnType() != void.class || method.getParameterCount() != 0 ||
++                        !Modifier.isPrivate(method.getModifiers()) || Modifier.isStatic(method.getModifiers())) {
++                    continue;
++                }
++
++                try {
++                    method.setAccessible(true);
++                    method.invoke(this, EMPTY);
++                } catch (final Exception ex) {
++                    throw new RuntimeException(ex);
++                }
++            }
++
++            /* We re-save to add new options */
++            try {
++                HydrinityConfig.config.save(HydrinityConfig.configFile);
++            } catch (final Exception ex) {
++                Bukkit.getLogger().log(Level.SEVERE, "Unable to save Hydrinity config", ex);
++            }
++        }
++
++        /**
++         * update world defaults for the specified path, but also sets this world's config value for the path
++         * if it exists
++         */
++        void set(final String path, final Object val) {
++            this.worldDefaults.set(path, val);
++            if (this.config.get(path) != null) {
++                this.config.set(path, val);
++            }
++        }
++
++        boolean getBoolean(final String path, final boolean dfl) {
++            this.worldDefaults.addDefault(path, Boolean.valueOf(dfl));
++            return this.config.getBoolean(path, this.worldDefaults.getBoolean(path));
++        }
++
++        int getInt(final String path, final int dfl) {
++            this.worldDefaults.addDefault(path, Integer.valueOf(dfl));
++            return this.config.getInt(path, this.worldDefaults.getInt(path));
++        }
++
++        long getLong(final String path, final long dfl) {
++            this.worldDefaults.addDefault(path, Long.valueOf(dfl));
++            return this.config.getLong(path, this.worldDefaults.getLong(path));
++        }
++
++        double getDouble(final String path, final double dfl) {
++            this.worldDefaults.addDefault(path, Double.valueOf(dfl));
++            return this.config.getDouble(path, this.worldDefaults.getDouble(path));
++        }
++    }
++}
