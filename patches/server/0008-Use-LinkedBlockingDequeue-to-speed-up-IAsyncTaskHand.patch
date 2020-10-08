@@ -1,0 +1,72 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mykyta Komarnytskyy <nkomarn@hotmail.com>
+Date: Wed, 7 Oct 2020 17:59:43 -0700
+Subject: [PATCH] Use LinkedBlockingDequeue to speed up IAsyncTaskHandler
+
+This patch replaces the ConcurrentLinkedQueue and LockSupport hack to reduce time consumption of addTask(R)V.
+
+Parts of this patch were originally created for the Yatopia <https://github.com/YatopiaMC/Yatopia> project by ishland <ishlandmc@yeah.net> and Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
+
+diff --git a/src/main/java/net/minecraft/server/IAsyncTaskHandler.java b/src/main/java/net/minecraft/server/IAsyncTaskHandler.java
+index 5df6be7e8d9b1295ed0700b3be90c3778fc7d77c..2ff8aa57b686a559764776110b48891f8de0fed8 100644
+--- a/src/main/java/net/minecraft/server/IAsyncTaskHandler.java
++++ b/src/main/java/net/minecraft/server/IAsyncTaskHandler.java
+@@ -13,8 +13,9 @@ public abstract class IAsyncTaskHandler<R extends Runnable> implements Mailbox<R
+ 
+     private final String b;
+     private static final Logger LOGGER = LogManager.getLogger();
+-    private final Queue<R> d = Queues.newConcurrentLinkedQueue();
++    private final java.util.concurrent.BlockingDeque<R> d = Queues.newLinkedBlockingDeque(); // Hydrinity
+     private int e;
++    private R nextTask; // Hydrinity
+ 
+     protected IAsyncTaskHandler(String s) {
+         this.b = s;
+@@ -79,7 +80,7 @@ public abstract class IAsyncTaskHandler<R extends Runnable> implements Mailbox<R
+     public final void addTask(R r0) { a(r0); }; // Paper - OBFHELPER
+     public void a(R r0) {
+         this.d.add(r0);
+-        LockSupport.unpark(this.getThread());
++        // LockSupport.unpark(this.getThread()); // Hydrinity
+     }
+ 
+     public void execute(Runnable runnable) {
+@@ -99,14 +100,21 @@ public abstract class IAsyncTaskHandler<R extends Runnable> implements Mailbox<R
+     }
+ 
+     protected boolean executeNext() {
+-        R r0 = this.d.peek(); // Paper - decompile fix
++        R r0 = nextTask; // Paper - decompile fix
++        if (r0 == null && !d.isEmpty()) {
++            bl(); // Hydrinity
++            r0 = nextTask;
++        }
+ 
+         if (r0 == null) {
+             return false;
+         } else if (this.e == 0 && !this.canExecute(r0)) {
+             return false;
+         } else {
+-            this.executeTask(this.d.remove()); // Paper - decompile fix
++            // Hydrinity start
++            nextTask = null;
++            this.executeTask(r0); // Paper - decompile fix
++            // Hydrinity end
+             return true;
+         }
+     }
+@@ -127,8 +135,12 @@ public abstract class IAsyncTaskHandler<R extends Runnable> implements Mailbox<R
+     }
+ 
+     protected void bl() {
+-        Thread.yield();
+-        LockSupport.parkNanos("waiting for tasks", 100000L);
++        // Hydrinity start - poll for next task in queue
++        nextTask = null;
++        try {
++            nextTask = d.poll(100, java.util.concurrent.TimeUnit.MICROSECONDS);
++        } catch (InterruptedException ignored) { }
++        // Hydrinity end
+     }
+ 
+     protected void executeTask(R r0) {
