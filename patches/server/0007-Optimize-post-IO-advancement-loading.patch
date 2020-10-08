@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mykyta Komarnytskyy <nkomarn@hotmail.com>
+Date: Wed, 7 Oct 2020 17:32:55 -0700
+Subject: [PATCH] Optimize post-IO advancement loading
+
+This patch reduces object allocation and only loops through advancements once, which reduces the tick rate impact of advancement loading.
+
+This patch was originally created for the Yatopia project by Ivan Pekov <ivan@mrivanplays.com> under the MIT license.
+
+diff --git a/src/main/java/net/minecraft/server/AdvancementDataPlayer.java b/src/main/java/net/minecraft/server/AdvancementDataPlayer.java
+index 17789407b9e86896a963a305a13357286aa5f319..a1744f7c56d2540bb1a7d0bc8e31bcfe609cff10 100644
+--- a/src/main/java/net/minecraft/server/AdvancementDataPlayer.java
++++ b/src/main/java/net/minecraft/server/AdvancementDataPlayer.java
+@@ -160,10 +160,8 @@ public class AdvancementDataPlayer {
+                     }
+ 
+                     Stream<Entry<MinecraftKey, AdvancementProgress>> stream = map.entrySet().stream().sorted(Comparator.comparing(Entry::getValue));
+-                    Iterator iterator = ((List) stream.collect(Collectors.toList())).iterator();
+-
+-                    while (iterator.hasNext()) {
+-                        Entry<MinecraftKey, AdvancementProgress> entry = (Entry) iterator.next();
++                    // Hydrinity start - optimize stream by not collecting before iterating
++                    stream.forEach(entry -> {
+                         Advancement advancement = advancementdataworld.a((MinecraftKey) entry.getKey());
+ 
+                         if (advancement == null) {
+@@ -175,7 +173,8 @@ public class AdvancementDataPlayer {
+                         } else {
+                             this.a(advancement, (AdvancementProgress) entry.getValue());
+                         }
+-                    }
++                    });
++                    // Hydrinity end
+                 } catch (Throwable throwable1) {
+                     throwable = throwable1;
+                     throw throwable1;
+@@ -200,9 +199,23 @@ public class AdvancementDataPlayer {
+             }
+         }
+ 
+-        this.c(advancementdataworld);
+-        this.c();
+-        this.b(advancementdataworld);
++        // Hydrinity start - reduce overhead of loading advancements post-IO
++        for (Advancement advancement : advancementdataworld.getAdvancements()) {
++            if (advancement.getCriteria().isEmpty()) {
++                grantCriteria(advancement, "");
++                advancement.d().a(player);
++            }
++
++            AdvancementProgress progress = getProgress(advancement);
++            if (progress.isDone()) {
++                this.j.add(advancement);
++                e(advancement);
++                continue;
++            }
++
++            c(advancement);
++        }
++        // Hydrinity end
+     }
+ 
+     public void b() {
