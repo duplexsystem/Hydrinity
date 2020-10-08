@@ -5,7 +5,7 @@ Subject: [PATCH] Optimize BlockPosition
 
 This patch removes a stream in the BlockPosition class that greatly increases execution speed.
 
-Parts of this patch were originally created for the Yatopia <https://github.com/YatopiaMC/Yatopia> project by Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
+Parts of this patch were originally created for the Yatopia project by Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
 
 diff --git a/src/main/java/net/minecraft/server/BlockPosition.java b/src/main/java/net/minecraft/server/BlockPosition.java
 index 2291135eaef64c403183724cb6e413cd7e472672..bec902fb9bc81fc12b8def7485575f89a35d0c66 100644

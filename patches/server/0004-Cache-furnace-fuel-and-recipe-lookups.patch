@@ -5,7 +5,7 @@ Subject: [PATCH] Cache furnace fuel and recipe lookups
 
 Heavily reduces the amount of performance impact furnaces have on the server.
 
-This patch was originally created for the Yatopia <https://github.com/YatopiaMC/Yatopia> project by tr7zw <tr7zw@live.de> and Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
+This patch was originally created for the Yatopia project by tr7zw <tr7zw@live.de> and Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
 
 diff --git a/src/main/java/net/minecraft/server/TileEntityFurnace.java b/src/main/java/net/minecraft/server/TileEntityFurnace.java
 index 1d3c2dd93657fb5dc71ee6b444c585b54619d1e8..87db9b7e95d6af9875e30421d0ebf2b0ad5e23e7 100644

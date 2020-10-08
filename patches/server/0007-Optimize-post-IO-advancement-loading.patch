@@ -5,7 +5,7 @@ Subject: [PATCH] Optimize post-IO advancement loading
 
 This patch reduces object allocation and only loops through advancements once, which reduces the tick rate impact of advancement loading.
 
-This patch was originally created for the Yatopia <https://github.com/YatopiaMC/Yatopia> project by Ivan Pekov <ivan@mrivanplays.com> under the MIT license.
+This patch was originally created for the Yatopia project by Ivan Pekov <ivan@mrivanplays.com> under the MIT license.
 
 diff --git a/src/main/java/net/minecraft/server/AdvancementDataPlayer.java b/src/main/java/net/minecraft/server/AdvancementDataPlayer.java
 index 17789407b9e86896a963a305a13357286aa5f319..a1744f7c56d2540bb1a7d0bc8e31bcfe609cff10 100644

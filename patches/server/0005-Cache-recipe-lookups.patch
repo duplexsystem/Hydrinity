@@ -5,7 +5,7 @@ Subject: [PATCH] Cache recipe lookups
 
 Store recipes in a cache to speed up future lookups, as well as replace a stream in craft() to increase execution speed.
 
-This patch was originally created for the Yatopia <https://github.com/YatopiaMC/Yatopia> project by Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
+This patch was originally created for the Yatopia project by Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
 
 diff --git a/src/main/java/net/minecraft/server/CraftingManager.java b/src/main/java/net/minecraft/server/CraftingManager.java
 index 58ecbe1e20581dc9e78cdd2f4ece29cfa014da8a..d61d22138e6feed85c8f1e360febb845db1268c0 100644
