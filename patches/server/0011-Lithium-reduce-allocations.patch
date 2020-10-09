@@ -1,0 +1,197 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: JellySquid <jellysquid+atwork@protonmail.com>
+Date: Thu, 8 Oct 2020 20:59:39 -0700
+Subject: [PATCH] Lithium reduce allocations
+
+This patch reduces object allocations in several places.
+
+Parts of this patch were created for the Lithium project <https://github.com/jellysquid3/lithium-fabric> by JellySquid <jellysquid+atwork@protonmail.com> and 2No2Name <https://github.com/2No2Name> under the GNU LGPLv3 license.
+Portions of this patch that were sourced from Lithium were remapped from Yarn mappings by Mykyta Komarnytskyy <nkomarn@hotmail.com>.
+
+Co-authored-by: Mykyta Komarnytskyy <nkomarn@hotmail.com>
+
+diff --git a/src/main/java/me/jellysquid/mods/lithium/common/world/ChunkRandomSource.java b/src/main/java/me/jellysquid/mods/lithium/common/world/ChunkRandomSource.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7a71b7ea50fc528864961582f9230f2b8654bf12
+--- /dev/null
++++ b/src/main/java/me/jellysquid/mods/lithium/common/world/ChunkRandomSource.java
+@@ -0,0 +1,12 @@
++package me.jellysquid.mods.lithium.common.world;
++
++import net.minecraft.server.BlockPosition;
++import net.minecraft.server.World;
++
++public interface ChunkRandomSource {
++    /**
++     * Alternative implementation of {@link World#a(int, int, int, int)} which does not allocate
++     * a new {@link BlockPosition}.
++     */
++    void getRandomPosInChunk(int x, int y, int z, int mask, BlockPosition.MutableBlockPosition out);
++}
+\ No newline at end of file
+diff --git a/src/main/java/net/minecraft/server/BlockComposter.java b/src/main/java/net/minecraft/server/BlockComposter.java
+index ccb61d656b57f02efaeb60df4a70169aef302eed..e851e006c54fc730334296d84cf225f508af2df6 100644
+--- a/src/main/java/net/minecraft/server/BlockComposter.java
++++ b/src/main/java/net/minecraft/server/BlockComposter.java
+@@ -304,7 +304,7 @@ public class BlockComposter extends Block implements IInventoryHolder {
+ 
+         @Override
+         public int[] getSlotsForFace(EnumDirection enumdirection) {
+-            return enumdirection == EnumDirection.UP ? new int[]{0} : new int[0];
++            return enumdirection == EnumDirection.UP ? xyz.nkomarn.hydrinity.util.Constants.ZERO_ARRAY : xyz.nkomarn.hydrinity.util.Constants.EMPTY_ARRAY; // Hydrinity - avoid array allocation
+         }
+ 
+         @Override
+@@ -354,7 +354,7 @@ public class BlockComposter extends Block implements IInventoryHolder {
+ 
+         @Override
+         public int[] getSlotsForFace(EnumDirection enumdirection) {
+-            return enumdirection == EnumDirection.DOWN ? new int[]{0} : new int[0];
++            return enumdirection == EnumDirection.DOWN ? xyz.nkomarn.hydrinity.util.Constants.ZERO_ARRAY : xyz.nkomarn.hydrinity.util.Constants.EMPTY_ARRAY; // Hydrinity - avoid array allocation
+         }
+ 
+         @Override
+@@ -390,7 +390,7 @@ public class BlockComposter extends Block implements IInventoryHolder {
+ 
+         @Override
+         public int[] getSlotsForFace(EnumDirection enumdirection) {
+-            return new int[0];
++            return xyz.nkomarn.hydrinity.util.Constants.EMPTY_ARRAY; // Hydrinity - avoid array allocation
+         }
+ 
+         @Override
+diff --git a/src/main/java/net/minecraft/server/BlockPiston.java b/src/main/java/net/minecraft/server/BlockPiston.java
+index 5d3bb5f393a1e0e4a2e8b9a466530a91279697a9..6015aa4e99e5b1d99241b5319e0fec9395c587b8 100644
+--- a/src/main/java/net/minecraft/server/BlockPiston.java
++++ b/src/main/java/net/minecraft/server/BlockPiston.java
+@@ -128,8 +128,10 @@ public class BlockPiston extends BlockDirectional {
+ 
+     }
+ 
++    private static final EnumDirection[] DIRECTIONS = EnumDirection.values(); // Hydrinity - avoid cloning enum values
++
+     private boolean a(World world, BlockPosition blockposition, EnumDirection enumdirection) {
+-        EnumDirection[] aenumdirection = EnumDirection.values();
++        EnumDirection[] aenumdirection = DIRECTIONS; // Hydrinity - avoid cloning enum values
+         int i = aenumdirection.length;
+ 
+         int j;
+@@ -146,7 +148,7 @@ public class BlockPiston extends BlockDirectional {
+             return true;
+         } else {
+             BlockPosition blockposition1 = blockposition.up();
+-            EnumDirection[] aenumdirection1 = EnumDirection.values();
++            EnumDirection[] aenumdirection1 = DIRECTIONS; // Hydrinity - avoid cloning enum values
+ 
+             j = aenumdirection1.length;
+ 
+diff --git a/src/main/java/net/minecraft/server/EntityLiving.java b/src/main/java/net/minecraft/server/EntityLiving.java
+index 0e000c7186d9f2ed6e0a1061f83d7f2d5695dc37..9ee74a39cbb624d6893045d4eed9624a616f78f8 100644
+--- a/src/main/java/net/minecraft/server/EntityLiving.java
++++ b/src/main/java/net/minecraft/server/EntityLiving.java
+@@ -2570,10 +2570,12 @@ public abstract class EntityLiving extends Entity {
+ 
+     }
+ 
++    private static final EnumItemSlot[] SLOTS = EnumItemSlot.values(); // Hydrinity - avoid cloning enum values
++
+     @Nullable
+     private Map<EnumItemSlot, ItemStack> q() {
+         Map<EnumItemSlot, ItemStack> map = null;
+-        EnumItemSlot[] aenumitemslot = EnumItemSlot.values();
++        EnumItemSlot[] aenumitemslot = SLOTS; // Hydrinity - avoid cloning enum values
+         int i = aenumitemslot.length;
+ 
+         for (int j = 0; j < i; ++j) {
+diff --git a/src/main/java/net/minecraft/server/World.java b/src/main/java/net/minecraft/server/World.java
+index e3bdbf062defa99a0c7e7d6b12737c3965a0f523..6408c2a71b23cc8571442ceb94a3fc1141f3b014 100644
+--- a/src/main/java/net/minecraft/server/World.java
++++ b/src/main/java/net/minecraft/server/World.java
+@@ -18,6 +18,8 @@ import java.util.function.Consumer;
+ import java.util.function.Predicate;
+ import java.util.function.Supplier;
+ import javax.annotation.Nullable;
++
++import me.jellysquid.mods.lithium.common.world.ChunkRandomSource;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
+ 
+@@ -33,7 +35,7 @@ import org.bukkit.craftbukkit.block.data.CraftBlockData;
+ import org.bukkit.event.block.BlockPhysicsEvent;
+ // CraftBukkit end
+ 
+-public abstract class World implements GeneratorAccess, AutoCloseable {
++public abstract class World implements GeneratorAccess, AutoCloseable, ChunkRandomSource {
+ 
+     protected static final Logger LOGGER = LogManager.getLogger();
+     public static final Codec<ResourceKey<World>> f = MinecraftKey.a.xmap(ResourceKey.b(IRegistry.L), ResourceKey::a);
+@@ -1506,4 +1508,13 @@ public abstract class World implements GeneratorAccess, AutoCloseable {
+     public final boolean isDebugWorld() {
+         return this.debugWorld;
+     }
++
++    // Hydrinity start
++    @Override
++    public void getRandomPosInChunk(int x, int y, int z, int mask, BlockPosition.MutableBlockPosition out) {
++        n = this.n * 3 + 1013904223;
++        int rand = n >> 2;
++        out.setValues(x + (rand & 15), y + (rand >> 16 & mask), z + (rand >> 8 & 15));
++    }
++    // Hydrinity end
+ }
+diff --git a/src/main/java/net/minecraft/server/WorldServer.java b/src/main/java/net/minecraft/server/WorldServer.java
+index 215789b7621d9b26c4aed128a13d8864e5502bab..1a0703680abda154e1306c0183b4d2648a06477e 100644
+--- a/src/main/java/net/minecraft/server/WorldServer.java
++++ b/src/main/java/net/minecraft/server/WorldServer.java
+@@ -90,6 +90,7 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+     private final EnderDragonBattle dragonBattle;
+     private final StructureManager structureManager;
+     private final boolean Q;
++    private final BlockPosition.MutableBlockPosition randomPosInChunkCachedPos = new BlockPosition.MutableBlockPosition(); // Hydrinity
+ 
+ 
+     // CraftBukkit start
+@@ -1060,7 +1061,7 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+         gameprofilerfiller.exitEnter("iceandsnow");
+         if (!this.paperConfig.disableIceAndSnow && this.randomTickRandom.nextInt(16) == 0) { // Paper - Disable ice and snow // Paper - optimise random ticking
+             // Paper start - optimise chunk ticking
+-            this.getRandomBlockPosition(j, 0, k, 15, blockposition);
++            this.redirectTickGetRandomPosInChunk(this, j, 0, k, 15); // Hydrinity
+             int normalY = chunk.getHighestBlockY(HeightMap.Type.MOTION_BLOCKING, blockposition.getX() & 15, blockposition.getZ() & 15);
+             int downY = normalY - 1;
+             blockposition.setY(normalY);
+@@ -1119,7 +1120,7 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+                     BlockPosition blockposition2 = blockposition.setValues(j + randomX, randomY, k + randomZ);
+                     IBlockData iblockdata = com.destroystokyo.paper.util.maplist.IBlockDataList.getBlockDataFromRaw(raw);
+ 
+-                    iblockdata.b(this, blockposition2, this.randomTickRandom);
++                    iblockdata.b(this, blockposition2.immutableCopy(), this.randomTickRandom); // Hydrinity
+ 
+                     // We drop the fluid tick since LAVA is ALREADY TICKED by the above method.
+                     // TODO CHECK ON UPDATE
+@@ -1132,6 +1133,13 @@ public class WorldServer extends World implements GeneratorAccessSeed {
+         }
+     }
+ 
++    // Hydrinity start - reduce blockposition allocations
++    private BlockPosition redirectTickGetRandomPosInChunk(WorldServer serverWorld, int x, int y, int z, int mask) {
++        ((me.jellysquid.mods.lithium.common.world.ChunkRandomSource) serverWorld).getRandomPosInChunk(x, y, z, mask, this.randomPosInChunkCachedPos);
++        return this.randomPosInChunkCachedPos;
++    }
++    // Hydrinity end
++
+     protected BlockPosition a(BlockPosition blockposition) {
+         BlockPosition blockposition1 = this.getHighestBlockYAt(HeightMap.Type.MOTION_BLOCKING, blockposition);
+         AxisAlignedBB axisalignedbb = (new AxisAlignedBB(blockposition1, new BlockPosition(blockposition1.getX(), this.getBuildHeight(), blockposition1.getZ()))).g(3.0D);
+diff --git a/src/main/java/xyz/nkomarn/hydrinity/util/Constants.java b/src/main/java/xyz/nkomarn/hydrinity/util/Constants.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..eceeb2df8ce8d5ae2e8f587cf48d1bfe03057f90
+--- /dev/null
++++ b/src/main/java/xyz/nkomarn/hydrinity/util/Constants.java
+@@ -0,0 +1,6 @@
++package xyz.nkomarn.hydrinity.util;
++
++public class Constants {
++    public static final int[] EMPTY_ARRAY = new int[0];
++    public static final int[] ZERO_ARRAY = new int[]{0};
++}
