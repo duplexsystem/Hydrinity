@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: William Blake Galbreath <Blake.Galbreath@GMail.com>
+Date: Thu, 8 Oct 2020 17:38:39 -0700
+Subject: [PATCH] Option to disable dolphin treasure searching
+
+Adds a configuration option that allows disabling of dolphin treasure searching. With this option enabled, dolphins can cause a massive amount of chunk loads, which will can easily crash a server. It's advised to disable this feature on larger servers.
+
+This patch was originally created for the Purpur project <https://github.com/pl3xgaming/Purpur> by William Blake Galbreath <Blake.Galbreath@GMail.com> under the MIT license.
+
+Co-authored-by: Mykyta Komarnytskyy <nkomarn@hotmail.com>
+
+diff --git a/src/main/java/net/minecraft/server/EntityDolphin.java b/src/main/java/net/minecraft/server/EntityDolphin.java
+index b5191eb0b10c90d5cd6be2fa68e955b7d625b4c6..055967f1d5f3a5c1c11323ef06474bb4f7316176 100644
+--- a/src/main/java/net/minecraft/server/EntityDolphin.java
++++ b/src/main/java/net/minecraft/server/EntityDolphin.java
+@@ -329,6 +329,7 @@ public class EntityDolphin extends EntityWaterAnimal {
+ 
+         @Override
+         public boolean a() {
++            if (!a.world.hydrinityConfig.dolphinTreasureSearching) return false; // Hydrinity - option to disable dolphin treasure searching
+             return this.a.gotFish() && this.a.getAirTicks() >= 100 && this.a.world.getWorld().canGenerateStructures(); // MC-151364, SPIGOT-5494: hangs if generate-structures=false
+         }
+ 
+diff --git a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
+index 5945954551c8cea320501fe9246ec96d1ea23679..a187439e07bdc2084686a6b2a5b73d925b269138 100644
+--- a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
++++ b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
+@@ -178,5 +178,10 @@ public class HydrinityConfig {
+             this.worldDefaults.addDefault(path, Double.valueOf(dfl));
+             return this.config.getDouble(path, this.worldDefaults.getDouble(path));
+         }
++
++        public boolean dolphinTreasureSearching = true;
++        private void dolphinTreasureSearching() {
++            dolphinTreasureSearching = getBoolean("dolphin-treasure-searching", true);
++        }
+     }
+ }

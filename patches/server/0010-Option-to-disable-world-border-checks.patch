@@ -1,0 +1,58 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mykyta Komarnytskyy <nkomarn@hotmail.com>
+Date: Thu, 8 Oct 2020 18:03:54 -0700
+Subject: [PATCH] Option to disable world border checks
+
+Adds a configuration option that allows disabling of world border checks. These are used quite a bit and disabling these may cause unintended behavior.
+
+This patch was created for the Hydrinity project <https://github.com/Hydrinity/Hydrinity> by Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
+
+diff --git a/src/main/java/net/minecraft/server/WorldBorder.java b/src/main/java/net/minecraft/server/WorldBorder.java
+index 26a8c4ffe26c4663ddb3596dce8c47026aa2d0c3..5a8012e6b48b8c96a44f2529815480bc434a36f9 100644
+--- a/src/main/java/net/minecraft/server/WorldBorder.java
++++ b/src/main/java/net/minecraft/server/WorldBorder.java
+@@ -21,8 +21,15 @@ public class WorldBorder {
+ 
+     public WorldBorder() {}
+ 
++    // Hydrinity start - configurable world border checks
++    private boolean skipChecks() {
++        return !world.hydrinityConfig.worldBorderChecks;
++    }
++    // Hydrinity end
++
+     public final boolean isInBounds(BlockPosition blockposition) { return this.a(blockposition); } // Paper - OBFHELPER
+     public boolean a(BlockPosition blockposition) {
++        if (skipChecks()) return true; // Hydrinity
+         return (double) (blockposition.getX() + 1) > this.e() && (double) blockposition.getX() < this.g() && (double) (blockposition.getZ() + 1) > this.f() && (double) blockposition.getZ() < this.h();
+     }
+ 
+@@ -39,11 +46,13 @@ public class WorldBorder {
+     // Paper end
+ 
+     public boolean isInBounds(ChunkCoordIntPair chunkcoordintpair) {
++        if (skipChecks()) return true; // Hydrinity
+         return (double) chunkcoordintpair.f() > this.e() && (double) chunkcoordintpair.d() < this.g() && (double) chunkcoordintpair.g() > this.f() && (double) chunkcoordintpair.e() < this.h();
+     }
+ 
+     public final boolean isInBounds(AxisAlignedBB aabb) { return this.a(aabb); } // Paper - OBFHELPER
+     public boolean a(AxisAlignedBB axisalignedbb) {
++        if (skipChecks()) return true; // Hydrinity
+         return axisalignedbb.maxX > this.e() && axisalignedbb.minX < this.g() && axisalignedbb.maxZ > this.f() && axisalignedbb.minZ < this.h();
+     }
+ 
+diff --git a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
+index a187439e07bdc2084686a6b2a5b73d925b269138..e306361664ecf976b89ccb6838bb56d0b13ab599 100644
+--- a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
++++ b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
+@@ -183,5 +183,10 @@ public class HydrinityConfig {
+         private void dolphinTreasureSearching() {
+             dolphinTreasureSearching = getBoolean("dolphin-treasure-searching", true);
+         }
++
++        public boolean worldBorderChecks = true;
++        private void worldBorderChecks() {
++            worldBorderChecks = getBoolean("world-border-checks", true);
++        }
+     }
+ }
