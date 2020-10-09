@@ -8,20 +8,33 @@ Store recipes in a cache to speed up future lookups, as well as replace a stream
 This patch was originally created for the Yatopia project by Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
 
 diff --git a/src/main/java/net/minecraft/server/CraftingManager.java b/src/main/java/net/minecraft/server/CraftingManager.java
-index 58ecbe1e20581dc9e78cdd2f4ece29cfa014da8a..d61d22138e6feed85c8f1e360febb845db1268c0 100644
+index 58ecbe1e20581dc9e78cdd2f4ece29cfa014da8a..bc100d690021971de64ba81e227450aa74e41d09 100644
 --- a/src/main/java/net/minecraft/server/CraftingManager.java
 +++ b/src/main/java/net/minecraft/server/CraftingManager.java
-@@ -31,6 +31,9 @@ public class CraftingManager extends ResourceDataJson {
+@@ -31,6 +31,10 @@ public class CraftingManager extends ResourceDataJson {
      private static final Logger LOGGER = LogManager.getLogger();
      public Map<Recipes<?>, Object2ObjectLinkedOpenHashMap<MinecraftKey, IRecipe<?>>> recipes = ImmutableMap.of(); // CraftBukkit
      private boolean d;
 +    // Hydrinity start
-+    private static final Map<Recipes<?>, List<IRecipe<?>>> RECIPE_CACHE = new Object2ObjectLinkedOpenHashMap<>();
++    private static final List<IRecipe<?>> ALL_RECIPES_CACHE = new java.util.ArrayList<>();
++    private static final Object2ObjectLinkedOpenHashMap<Recipes<?>, List<IRecipe<?>>> TYPES_CACHE = new Object2ObjectLinkedOpenHashMap<>();
 +    // Hydrinity end
  
      public CraftingManager() {
          super(CraftingManager.a, "recipes");
-@@ -84,18 +87,29 @@ public class CraftingManager extends ResourceDataJson {
+@@ -66,6 +70,11 @@ public class CraftingManager extends ResourceDataJson {
+         this.recipes = (Map) map1.entrySet().stream().collect(ImmutableMap.toImmutableMap(Entry::getKey, (entry1) -> {
+             return entry1.getValue(); // CraftBukkit // Paper - decompile fix - *shrugs internally*
+         }));
++        // Hydrinity start - cache all recipes for fast access in b()
++        for (Object2ObjectLinkedOpenHashMap<MinecraftKey, IRecipe<?>> recipesMap : map1.values()) {
++            ALL_RECIPES_CACHE.addAll(recipesMap.values());
++        }
++        // Hydrinity end
+         CraftingManager.LOGGER.info("Loaded {} recipes", map1.size());
+     }
+ 
+@@ -84,18 +93,29 @@ public class CraftingManager extends ResourceDataJson {
  
      public <C extends IInventory, T extends IRecipe<C>> Optional<T> craft(Recipes<T> recipes, C c0, World world) {
          // CraftBukkit start
@@ -50,10 +63,32 @@ index 58ecbe1e20581dc9e78cdd2f4ece29cfa014da8a..d61d22138e6feed85c8f1e360febb845
 -            return irecipe;
 -        }).collect(Collectors.toList());
 +        // Hydrinity start - use recipe cache when possible
-+        return (List) RECIPE_CACHE.computeIfAbsent(recipes, recipes1 -> {
++        return (List) TYPES_CACHE.computeIfAbsent(recipes, recipes1 -> {
 +           return new java.util.ArrayList<>(this.b(recipes).values());
 +        });
 +        // Hydrinity end
      }
  
      public <C extends IInventory, T extends IRecipe<C>> List<T> b(Recipes<T> recipes, C c0, World world) {
+@@ -133,9 +153,7 @@ public class CraftingManager extends ResourceDataJson {
+     }
+ 
+     public Collection<IRecipe<?>> b() {
+-        return (Collection) this.recipes.values().stream().flatMap((map) -> {
+-            return map.values().stream();
+-        }).collect(Collectors.toSet());
++        return ALL_RECIPES_CACHE; // Hydrinity
+     }
+ 
+     public Stream<MinecraftKey> d() {
+@@ -155,6 +173,10 @@ public class CraftingManager extends ResourceDataJson {
+     // CraftBukkit start
+     public void clearRecipes() {
+         this.recipes = Maps.newHashMap();
++        // Hydrinity start
++        ALL_RECIPES_CACHE.clear();
++        TYPES_CACHE.clear();
++        // Hydrinity end
+ 
+         for (Recipes<?> recipeType : IRegistry.RECIPE_TYPE) {
+             this.recipes.put(recipeType, new Object2ObjectLinkedOpenHashMap<>());
