@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mykyta Komarnytskyy <nkomarn@hotmail.com>
+Date: Mon, 12 Oct 2020 07:37:58 -0700
+Subject: [PATCH] Configurable flight checks
+
+Adds an option to disable flight checking, which can be unreliable at best for players with higher ping or when used in combination with a "pets" plugin that allows riding vehicles.
+
+This patch was created for the Hydrinity project <https://github.com/Hydrinity/Hydrinity> by Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
+
+diff --git a/src/main/java/net/minecraft/server/PlayerConnection.java b/src/main/java/net/minecraft/server/PlayerConnection.java
+index e4aab53484c6a7ffaf7658acd5b026b9a0c04d47..29d52444286756167ef40fb5eb684aa20a27f11a 100644
+--- a/src/main/java/net/minecraft/server/PlayerConnection.java
++++ b/src/main/java/net/minecraft/server/PlayerConnection.java
+@@ -165,7 +165,7 @@ public class PlayerConnection implements PacketListenerPlayIn {
+         ++this.e;
+         this.processedMovePackets = this.receivedMovePackets;
+         if (this.B && !this.player.isSleeping()) {
+-            if (++this.C > 80) {
++            if (xyz.nkomarn.hydrinity.HydrinityConfig.flightChecks && ++this.C > 80) { // Hydrinity - configurable flight checks
+                 PlayerConnection.LOGGER.warn("{} was kicked for floating too long!", this.player.getDisplayName().getString());
+                 this.disconnect(com.destroystokyo.paper.PaperConfig.flyingKickPlayerMessage); // Paper - use configurable kick message
+                 return;
+@@ -184,7 +184,7 @@ public class PlayerConnection implements PacketListenerPlayIn {
+             this.w = this.r.locY();
+             this.x = this.r.locZ();
+             if (this.D && this.player.getRootVehicle().getRidingPassenger() == this.player) {
+-                if (++this.E > 80) {
++                if (xyz.nkomarn.hydrinity.HydrinityConfig.flightChecks && ++this.E > 80) { // Hydrinity - configurable flight checks
+                     PlayerConnection.LOGGER.warn("{} was kicked for floating a vehicle too long!", this.player.getDisplayName().getString());
+                     this.disconnect(com.destroystokyo.paper.PaperConfig.flyingKickVehicleMessage); // Paper - use configurable kick message
+                     return;
+diff --git a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
+index e306361664ecf976b89ccb6838bb56d0b13ab599..1c76ab42e27cb4c181733cc90c85c1d3e0d5cc4b 100644
+--- a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
++++ b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
+@@ -96,6 +96,11 @@ public class HydrinityConfig {
+         return HydrinityConfig.config.getDouble(path, dfl);
+     }
+ 
++    public static boolean flightChecks = true;
++    private static void flightChecks() {
++        flightChecks = getBoolean("settings.flight-checks", true);
++    }
++
+     public static final class WorldConfig {
+ 
+         public final String worldName;
