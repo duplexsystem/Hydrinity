@@ -5,7 +5,7 @@ Subject: [PATCH] POM Changes
 
 
 diff --git a/pom.xml b/pom.xml
-index 5e25ae55e44e31d232b088b7c3c39df69b0cc875..a1b96d5d86fb7a32841a8c72655a9ca07126334b 100644
+index 5e25ae55e44e31d232b088b7c3c39df69b0cc875..c6a2abe14f9f5738b6228613d1deebff55768d01 100644
 --- a/pom.xml
 +++ b/pom.xml
 @@ -1,11 +1,11 @@
@@ -23,7 +23,14 @@ index 5e25ae55e44e31d232b088b7c3c39df69b0cc875..a1b96d5d86fb7a32841a8c72655a9ca0
  
      <properties>
          <!-- <skipTests>true</skipTests> Paper - This [was] not going to end well -->
-@@ -18,16 +18,16 @@
+@@ -13,21 +13,21 @@
+         <api.version>unknown</api.version>
+         <minecraft.version>1.16.3</minecraft.version>
+         <minecraft_version>1_16_R2</minecraft_version>
+-        <maven.compiler.source>1.8</maven.compiler.source>
+-        <maven.compiler.target>1.8</maven.compiler.target>
++        <maven.compiler.source>11</maven.compiler.source> <!-- Hydrinity - Java 11 -->
++        <maven.compiler.target>11</maven.compiler.target> <!-- Hydrinity - Java 11 -->
      </properties>
  
      <parent>
