@@ -1,0 +1,58 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mykyta Komarnytskyy <nkomarn@hotmail.com>
+Date: Thu, 15 Oct 2020 19:48:15 -0700
+Subject: [PATCH] Configurable criterion triggers
+
+This patch adds toggles for three criterion triggers that are called every tick. These can be very unnecessary, and especially in the case of CriterionTriggerEnterBlock, quite heavy.
+
+This patch was created for the Hydrinity project <https://github.com/Hydrinity/Hydrinity> by Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
+
+diff --git a/src/main/java/net/minecraft/server/EntityPlayer.java b/src/main/java/net/minecraft/server/EntityPlayer.java
+index 11fa231caa5be12a43e646eb2c0300e597d25dd2..ef4af931d25211054bbd6995a2c6990684f81a30 100644
+--- a/src/main/java/net/minecraft/server/EntityPlayer.java
++++ b/src/main/java/net/minecraft/server/EntityPlayer.java
+@@ -427,6 +427,7 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
+ 
+     @Override
+     protected void a(IBlockData iblockdata) {
++        if (xyz.nkomarn.hydrinity.HydrinityConfig.criterionTriggerEnterBlock) // Hydrinity
+         CriterionTriggers.d.a(this, iblockdata);
+     }
+ 
+@@ -494,6 +495,7 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
+             }
+         }
+ 
++        if (xyz.nkomarn.hydrinity.HydrinityConfig.criterionTriggerTick) // Hydrinity
+         CriterionTriggers.w.a(this);
+         if (this.cf != null) {
+             CriterionTriggers.u.a(this, this.cf, this.ticksLived - this.cg);
+@@ -569,7 +571,7 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
+                 this.playerConnection.sendPacket(new PacketPlayOutExperience(this.exp, this.expTotal, this.expLevel));
+             }
+ 
+-            if (this.ticksLived % 20 == 0) {
++            if (xyz.nkomarn.hydrinity.HydrinityConfig.criterionTriggerLocation && this.ticksLived % 20 == 0) { // Hydrinity
+                 CriterionTriggers.p.a(this);
+             }
+ 
+diff --git a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
+index 1c76ab42e27cb4c181733cc90c85c1d3e0d5cc4b..4f971051bfec43f4927d67a3b645d57749dc9e3f 100644
+--- a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
++++ b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
+@@ -101,6 +101,15 @@ public class HydrinityConfig {
+         flightChecks = getBoolean("settings.flight-checks", true);
+     }
+ 
++    public static boolean criterionTriggerLocation = true;
++    public static boolean criterionTriggerEnterBlock = true;
++    public static boolean criterionTriggerTick = true;
++    private static void criterionTriggers() {
++        criterionTriggerLocation = getBoolean("settings.criterion-trigger.location", true);
++        criterionTriggerEnterBlock = getBoolean("settings.criterion-trigger.enter-block", true);
++        criterionTriggerTick = getBoolean("settings.criterion-trigger.tick", true);
++    }
++
+     public static final class WorldConfig {
+ 
+         public final String worldName;
