@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mykyta Komarnytskyy <nkomarn@hotmail.com>
+Date: Sat, 17 Oct 2020 07:54:30 -0700
+Subject: [PATCH] Add jukebox disc dispenser behavior
+
+This patch gives dispensers the ability to insert and remove discs from a jukebox that it is facing. The disc will start placing as soon as it is inserted and stop when it has finished.
+
+This patch was created for the Hydrinity project <https://github.com/Hydrinity/Hydrinity> by Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
+
+diff --git a/src/main/java/net/minecraft/server/IDispenseBehavior.java b/src/main/java/net/minecraft/server/IDispenseBehavior.java
+index 7b8a470d97ccf0fdcdb8eef9368195486e09913b..b61ccaf0721fa181b8bb6cdbb4e6a70bebdb1561 100644
+--- a/src/main/java/net/minecraft/server/IDispenseBehavior.java
++++ b/src/main/java/net/minecraft/server/IDispenseBehavior.java
+@@ -915,6 +915,49 @@ public interface IDispenseBehavior {
+             }
+         }));
+         BlockDispenser.a((IMaterial) Items.SHEARS.getItem(), (IDispenseBehavior) (new DispenseBehaviorShears()));
++        // Hydrinity start - dispensable music discs
++        var discBehavior = new DispenseBehaviorMaybe() {
++            @Override
++            protected ItemStack a(ISourceBlock isourceblock, ItemStack itemstack) {
++                var world = isourceblock.getWorld();
++                var blockpos = isourceblock.getBlockPosition().shift(isourceblock.getBlockData().get(BlockDispenser.FACING));
++                var blockstate = world.getType(blockpos);
++
++                if (blockstate.getBlock() != Blocks.JUKEBOX) {
++                    return itemstack;
++                }
++
++                var jukebox = ((BlockJukeBox) Blocks.JUKEBOX);
++                if (blockstate.get(BlockJukeBox.HAS_RECORD)) {
++                    jukebox.dropRecord(world, blockpos);
++                    world.setTypeAndData(blockpos, blockstate.set(BlockJukeBox.HAS_RECORD, false), 2);
++                } else {
++                    var discId = Item.getId(itemstack.getItem());
++                    jukebox.a(world, blockpos, blockstate, itemstack.cloneAndSubtract(1));
++                    world.a(null, 1010, blockpos, discId);
++                }
++
++                this.a(true);
++                return itemstack;
++            }
++        };
++
++        java.util.Arrays.asList(
++                Items.MUSIC_DISC_11,
++                Items.MUSIC_DISC_13,
++                Items.MUSIC_DISC_BLOCKS,
++                Items.MUSIC_DISC_CAT,
++                Items.MUSIC_DISC_CHIRP,
++                Items.MUSIC_DISC_FAR,
++                Items.MUSIC_DISC_MALL,
++                Items.MUSIC_DISC_MELLOHI,
++                Items.MUSIC_DISC_PIGSTEP,
++                Items.MUSIC_DISC_STAL,
++                Items.MUSIC_DISC_STRAD,
++                Items.MUSIC_DISC_WAIT,
++                Items.MUSIC_DISC_WARD
++        ).forEach(disc -> BlockDispenser.a(disc, discBehavior));
++        // Hydrinity end
+     }
+ 
+     static void a(ISourceBlock isourceblock, Entity entity, EnumDirection enumdirection) {
