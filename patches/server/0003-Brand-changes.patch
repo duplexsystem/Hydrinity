@@ -20,7 +20,7 @@ index 255bbd6e48b95c70fad02ba692c64c7579496827..11f2c1fee92a9f4a061ddf28793ad31d
  
          return history != null ? history + "\n" + updateMessage : updateMessage;
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 93c4f29e1ee15558af8981f108d04bf99b4d387d..ed2f948cc7b0e5d4b09ebdb1609a01de2ab42311 100644
+index c5a8d6d3fb0e25b4a5913894eaa7dd6b4937fd5d..f6247332a0af1a4884f3eec0089486e265870773 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -1510,7 +1510,7 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas

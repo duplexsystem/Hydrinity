@@ -8,7 +8,7 @@ This patch adds toggles for three criterion triggers that are called every tick.
 This patch was created for the Hydrinity project <https://github.com/Hydrinity/Hydrinity> by Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
 
 diff --git a/src/main/java/net/minecraft/server/EntityPlayer.java b/src/main/java/net/minecraft/server/EntityPlayer.java
-index 11fa231caa5be12a43e646eb2c0300e597d25dd2..ef4af931d25211054bbd6995a2c6990684f81a30 100644
+index 8e1655a975af24f6781a95be7030afa8f1b14472..c1c680545e557ae144999b24961019b95a164aff 100644
 --- a/src/main/java/net/minecraft/server/EntityPlayer.java
 +++ b/src/main/java/net/minecraft/server/EntityPlayer.java
 @@ -427,6 +427,7 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
