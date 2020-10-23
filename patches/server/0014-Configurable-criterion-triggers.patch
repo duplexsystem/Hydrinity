@@ -37,7 +37,7 @@ index 8e1655a975af24f6781a95be7030afa8f1b14472..c1c680545e557ae144999b24961019b9
              }
  
 diff --git a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
-index 1c76ab42e27cb4c181733cc90c85c1d3e0d5cc4b..4f971051bfec43f4927d67a3b645d57749dc9e3f 100644
+index 1c76ab42e27cb4c181733cc90c85c1d3e0d5cc4b..6cc530f528b799023c1b9c57efd9bae268b119ca 100644
 --- a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
 +++ b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
 @@ -101,6 +101,15 @@ public class HydrinityConfig {
@@ -48,9 +48,9 @@ index 1c76ab42e27cb4c181733cc90c85c1d3e0d5cc4b..4f971051bfec43f4927d67a3b645d577
 +    public static boolean criterionTriggerEnterBlock = true;
 +    public static boolean criterionTriggerTick = true;
 +    private static void criterionTriggers() {
-+        criterionTriggerLocation = getBoolean("settings.criterion-trigger.location", true);
-+        criterionTriggerEnterBlock = getBoolean("settings.criterion-trigger.enter-block", true);
-+        criterionTriggerTick = getBoolean("settings.criterion-trigger.tick", true);
++        criterionTriggerLocation = getBoolean("settings.criterion-triggers.location", true);
++        criterionTriggerEnterBlock = getBoolean("settings.criterion-triggers.enter-block", true);
++        criterionTriggerTick = getBoolean("settings.criterion-triggers.tick", true);
 +    }
 +
      public static final class WorldConfig {
