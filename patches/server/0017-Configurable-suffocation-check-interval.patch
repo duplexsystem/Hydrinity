@@ -9,8 +9,20 @@ A side effect of increasing the interval is slower suffocation damage. I find th
 
 This patch was created for the Hydrinity project <https://github.com/Hydrinity/Hydrinity> by Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
 
+diff --git a/src/main/java/net/minecraft/server/Entity.java b/src/main/java/net/minecraft/server/Entity.java
+index b424f96b25f23a038ccf26eece8f0d1924224e85..a32b07a167ea5eed2fa14679faba9372d5a5737a 100644
+--- a/src/main/java/net/minecraft/server/Entity.java
++++ b/src/main/java/net/minecraft/server/Entity.java
+@@ -1335,6 +1335,7 @@ public abstract class Entity implements INamableTileEntity, ICommandListener, Ke
+     }
+ 
+     protected boolean aJ() {
++        if (xyz.nkomarn.hydrinity.util.MathUtils.fastMod(ticksLived, xyz.nkomarn.hydrinity.HydrinityConfig.entityWaterCheck) != 0) return false; // Hydrinity - configurable entity water check interval
+         this.M.clear();
+         this.aK();
+         double d0 = this.world.getDimensionManager().isNether() ? 0.007D : 0.0023333333333333335D;
 diff --git a/src/main/java/net/minecraft/server/EntityLiving.java b/src/main/java/net/minecraft/server/EntityLiving.java
-index 9ee74a39cbb624d6893045d4eed9624a616f78f8..450833e7f2dfd66cc54a478ba542b709c46e2e2b 100644
+index 9ee74a39cbb624d6893045d4eed9624a616f78f8..887a2f613c2ac759a3ccdc773978897c81e6b469 100644
 --- a/src/main/java/net/minecraft/server/EntityLiving.java
 +++ b/src/main/java/net/minecraft/server/EntityLiving.java
 @@ -268,7 +268,7 @@ public abstract class EntityLiving extends Entity {
@@ -18,22 +30,24 @@ index 9ee74a39cbb624d6893045d4eed9624a616f78f8..450833e7f2dfd66cc54a478ba542b709
  
          if (this.isAlive()) {
 -            if (this.inBlock()) {
-+            if (ticksLived % xyz.nkomarn.hydrinity.HydrinityConfig.entitySuffocationCheck == 0 && this.inBlock()) { // Hydrinity - configurable suffocation check interval
++            if (xyz.nkomarn.hydrinity.util.MathUtils.fastMod(ticksLived, xyz.nkomarn.hydrinity.HydrinityConfig.entitySuffocationCheck) == 0 && this.inBlock()) { // Hydrinity - configurable suffocation check interval
                  this.damageEntity(DamageSource.STUCK, 1.0F);
              } else if (flag && !this.world.getWorldBorder().a(this.getBoundingBox())) {
                  double d0 = this.world.getWorldBorder().a((Entity) this) + this.world.getWorldBorder().getDamageBuffer();
 diff --git a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
-index be4c231c77a2e64d89071f048241876be29c4046..5fb0ba78433bafef0121d54f51643e4b4745d7d6 100644
+index be4c231c77a2e64d89071f048241876be29c4046..baf75f0780550a0292169bbe8c76bd6f4bca5ee8 100644
 --- a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
 +++ b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
-@@ -111,8 +111,10 @@ public class HydrinityConfig {
+@@ -111,8 +111,12 @@ public class HydrinityConfig {
      }
  
      public static int playerTimeStatisticsInterval = 1;
 +    public static int entitySuffocationCheck = 1;
++    public static int entityWaterCheck = 1;
      private static void intervals() {
          playerTimeStatisticsInterval = Math.max(1, getInt("settings.intervals.player-time-statistics", 1));
 +        entitySuffocationCheck = Math.max(1, getInt("settings.intervals.entity-suffocation-check", 1));
++        entityWaterCheck = Math.max(1, getInt("settings.intervals.entity-water-check", 1));
      }
  
      public static final class WorldConfig {
