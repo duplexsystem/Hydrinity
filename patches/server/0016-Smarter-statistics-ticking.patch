@@ -10,7 +10,7 @@ With an interval of 20, this patch saves roughly 3ms per tick on a server w/ 80 
 This patch was created for the Hydrinity project <https://github.com/Hydrinity/Hydrinity> by Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
 
 diff --git a/src/main/java/net/minecraft/server/EntityHuman.java b/src/main/java/net/minecraft/server/EntityHuman.java
-index ce4ebc96c01f3dacf4e4d0569d86f52140440d43..df0f7d6235b5a4c813f3d18f02b258fbf194cade 100644
+index ce4ebc96c01f3dacf4e4d0569d86f52140440d43..c421e3f74fc0739963c62f46d1768b6e6d05ea5a 100644
 --- a/src/main/java/net/minecraft/server/EntityHuman.java
 +++ b/src/main/java/net/minecraft/server/EntityHuman.java
 @@ -162,18 +162,22 @@ public abstract class EntityHuman extends EntityLiving {
@@ -20,7 +20,7 @@ index ce4ebc96c01f3dacf4e4d0569d86f52140440d43..df0f7d6235b5a4c813f3d18f02b258fb
 -            this.a(StatisticList.PLAY_ONE_MINUTE);
 +            // Hydrinity start - smarter statistics tracking
 +            int interval = xyz.nkomarn.hydrinity.HydrinityConfig.playerTimeStatisticsInterval;
-+            if (ticksLived % interval == 0) {
++            if (xyz.nkomarn.hydrinity.util.MathUtils.fastMod(ticksLived, interval) == 0) {
 +            this.a(StatisticList.PLAY_ONE_MINUTE, interval);
              if (this.isAlive()) {
 -                this.a(StatisticList.TIME_SINCE_DEATH);
