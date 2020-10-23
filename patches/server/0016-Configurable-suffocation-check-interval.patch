@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mykyta Komarnytskyy <nkomarn@hotmail.com>
+Date: Thu, 22 Oct 2020 19:21:44 -0700
+Subject: [PATCH] Configurable suffocation check interval
+
+This patch adds a configuration option for how often the game checks if an entity should take suffocation damage. These checks use some fairly heavy block collision code and can be slowed down safely, improving overall entity performance substantially.
+
+A side effect of increasing the interval is slower suffocation damage. I find that a value of 10 works pretty well, but you can get away with 20 as well.
+
+This patch was created for the Hydrinity project <https://github.com/Hydrinity/Hydrinity> by Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
+
+diff --git a/src/main/java/net/minecraft/server/EntityLiving.java b/src/main/java/net/minecraft/server/EntityLiving.java
+index 9ee74a39cbb624d6893045d4eed9624a616f78f8..450833e7f2dfd66cc54a478ba542b709c46e2e2b 100644
+--- a/src/main/java/net/minecraft/server/EntityLiving.java
++++ b/src/main/java/net/minecraft/server/EntityLiving.java
+@@ -268,7 +268,7 @@ public abstract class EntityLiving extends Entity {
+         boolean flag = this instanceof EntityHuman;
+ 
+         if (this.isAlive()) {
+-            if (this.inBlock()) {
++            if (ticksLived % xyz.nkomarn.hydrinity.HydrinityConfig.entitySuffocationCheck == 0 && this.inBlock()) { // Hydrinity - configurable suffocation check interval
+                 this.damageEntity(DamageSource.STUCK, 1.0F);
+             } else if (flag && !this.world.getWorldBorder().a(this.getBoundingBox())) {
+                 double d0 = this.world.getWorldBorder().a((Entity) this) + this.world.getWorldBorder().getDamageBuffer();
+diff --git a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
+index be4c231c77a2e64d89071f048241876be29c4046..5fb0ba78433bafef0121d54f51643e4b4745d7d6 100644
+--- a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
++++ b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
+@@ -111,8 +111,10 @@ public class HydrinityConfig {
+     }
+ 
+     public static int playerTimeStatisticsInterval = 1;
++    public static int entitySuffocationCheck = 1;
+     private static void intervals() {
+         playerTimeStatisticsInterval = Math.max(1, getInt("settings.intervals.player-time-statistics", 1));
++        entitySuffocationCheck = Math.max(1, getInt("settings.intervals.entity-suffocation-check", 1));
+     }
+ 
+     public static final class WorldConfig {
