@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mykyta Komarnytskyy <nkomarn@hotmail.com>
+Date: Thu, 22 Oct 2020 18:32:23 -0700
+Subject: [PATCH] Smarter statistics ticking
+
+In vanilla, statistics that count time spent for an action (i.e. time played or sneak time) are incremented every tick. This is retarded. With this patch, the statistics are only ticked every 20th tick and are incremented by 20 ticks at a time. This means a lot less ticking with the same accurate counting.
+
+This patch saves roughly 3ms per tick on a server w/ 80 players online.
+
+This patch was created for the Hydrinity project <https://github.com/Hydrinity/Hydrinity> by Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
+
+diff --git a/src/main/java/net/minecraft/server/EntityHuman.java b/src/main/java/net/minecraft/server/EntityHuman.java
+index ce4ebc96c01f3dacf4e4d0569d86f52140440d43..b2f64cbef775d4e0c57ab27ff79a707007e3dd7c 100644
+--- a/src/main/java/net/minecraft/server/EntityHuman.java
++++ b/src/main/java/net/minecraft/server/EntityHuman.java
+@@ -162,18 +162,20 @@ public abstract class EntityHuman extends EntityLiving {
+         this.p();
+         if (!this.world.isClientSide) {
+             this.foodData.a(this);
+-            this.a(StatisticList.PLAY_ONE_MINUTE);
++            if (ticksLived % 20 == 0) { // Hydrinity start - smarter statistics tracking
++            this.a(StatisticList.PLAY_ONE_MINUTE, 20);
+             if (this.isAlive()) {
+-                this.a(StatisticList.TIME_SINCE_DEATH);
++                this.a(StatisticList.TIME_SINCE_DEATH, 20);
+             }
+ 
+             if (this.bw()) {
+-                this.a(StatisticList.SNEAK_TIME);
++                this.a(StatisticList.SNEAK_TIME, 20);
+             }
+ 
+             if (!this.isSleeping()) {
+-                this.a(StatisticList.TIME_SINCE_REST);
++                this.a(StatisticList.TIME_SINCE_REST, 20);
+             }
++            } // Hydrinity end
+         }
+ 
+         int i = 29999999;
