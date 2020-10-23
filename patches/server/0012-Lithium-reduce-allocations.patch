@@ -183,15 +183,3 @@ index 215789b7621d9b26c4aed128a13d8864e5502bab..1a0703680abda154e1306c0183b4d264
      protected BlockPosition a(BlockPosition blockposition) {
          BlockPosition blockposition1 = this.getHighestBlockYAt(HeightMap.Type.MOTION_BLOCKING, blockposition);
          AxisAlignedBB axisalignedbb = (new AxisAlignedBB(blockposition1, new BlockPosition(blockposition1.getX(), this.getBuildHeight(), blockposition1.getZ()))).g(3.0D);
-diff --git a/src/main/java/xyz/nkomarn/hydrinity/util/Constants.java b/src/main/java/xyz/nkomarn/hydrinity/util/Constants.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..eceeb2df8ce8d5ae2e8f587cf48d1bfe03057f90
---- /dev/null
-+++ b/src/main/java/xyz/nkomarn/hydrinity/util/Constants.java
-@@ -0,0 +1,6 @@
-+package xyz.nkomarn.hydrinity.util;
-+
-+public class Constants {
-+    public static final int[] EMPTY_ARRAY = new int[0];
-+    public static final int[] ZERO_ARRAY = new int[]{0};
-+}
