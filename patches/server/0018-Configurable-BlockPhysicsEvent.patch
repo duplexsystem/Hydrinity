@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mykyta Komarnytskyy <nkomarn@hotmail.com>
+Date: Sat, 24 Oct 2020 19:03:02 -0700
+Subject: [PATCH] Configurable BlockPhysicsEvent
+
+Bukkit's BlockPhysicsEvent is *ridiculously* spammy and can easily rack in 1,600 calls/sec on a server with just one player. This hogs a ton of CPU time.
+Paper does alleviate this quite well by only firing if plugins are listening, but a lot of common world protection plugins use this event do not offer toggles for their listeners, which makes Paper's change ineffective for most servers.
+This patch implements a hard toggle for the event.
+
+This patch was created for the Hydrinity project <https://github.com/Hydrinity/Hydrinity> by Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
+
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index f6247332a0af1a4884f3eec0089486e265870773..c5d302f5a7607366b3312753f6baa064375fbd2a 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -1394,7 +1394,7 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
+ 
+         while (iterator.hasNext()) {
+             WorldServer worldserver = (WorldServer) iterator.next();
+-            worldserver.hasPhysicsEvent =  org.bukkit.event.block.BlockPhysicsEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper
++            worldserver.hasPhysicsEvent = xyz.nkomarn.hydrinity.HydrinityConfig.fireBlockPhysicsEvent && org.bukkit.event.block.BlockPhysicsEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper // Hydrinity
+             TileEntityHopper.skipHopperEvents = worldserver.paperConfig.disableHopperMoveEvents || org.bukkit.event.inventory.InventoryMoveItemEvent.getHandlerList().getRegisteredListeners().length == 0; // Paper
+ 
+             this.methodProfiler.a(() -> {
+diff --git a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
+index baf75f0780550a0292169bbe8c76bd6f4bca5ee8..cee349e2a17a20a6c0a895d328cb9b4511db569e 100644
+--- a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
++++ b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
+@@ -101,6 +101,11 @@ public class HydrinityConfig {
+         flightChecks = getBoolean("settings.flight-checks", true);
+     }
+ 
++    public static boolean fireBlockPhysicsEvent = true;
++    private static void fireBlockPhysicsEvent() {
++        fireBlockPhysicsEvent = getBoolean("settings.fire-block-physics-event", true);
++    }
++
+     public static boolean criterionTriggerLocation = true;
+     public static boolean criterionTriggerEnterBlock = true;
+     public static boolean criterionTriggerTick = true;
