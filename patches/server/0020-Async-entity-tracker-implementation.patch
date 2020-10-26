@@ -1,0 +1,171 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mykyta Komarnytskyy <nkomarn@hotmail.com>
+Date: Mon, 26 Oct 2020 10:45:45 -0700
+Subject: [PATCH] Async entity tracker implementation
+
+This patch implements an asynchronous entity tracker. This brings a large performance improvement and safely offloads entity tracker ticking to a thread pool.
+
+The trackedEntities Int2ObjectOpenHashMap was replaced with a ConcurrentTrackerMap, which is simply a ConcurrentHashMap wrapper implementing Int2ObjectMap. This allows for concurrency, as well as ensures support for plugins like Citizens is retained. View the Javadoc comment for ConcurrentTrackerMap for more information.
+
+This patch is configurable, meaning the asynchronous tracker implementation can be disabled in the configuration if it causes any issues with plugins. Disabling this patch will revert behavior to Tuinity's tracker processing implementation.
+
+This patch was created for the Hydrinity project <https://github.com/Hydrinity/Hydrinity> by Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
+
+diff --git a/src/main/java/net/minecraft/server/EntityTrackerEntry.java b/src/main/java/net/minecraft/server/EntityTrackerEntry.java
+index f322dccd834ff56b99f8796309709b5b6ac01456..0a94e04205c1f57a5956ea5945fdff543667e58a 100644
+--- a/src/main/java/net/minecraft/server/EntityTrackerEntry.java
++++ b/src/main/java/net/minecraft/server/EntityTrackerEntry.java
+@@ -74,7 +74,7 @@ public class EntityTrackerEntry {
+ 
+     public final void tick() { this.a(); } // Paper - OBFHELPER
+     public void a() {
+-        com.tuinity.tuinity.util.TickThread.softEnsureTickThread("Tracker update"); // Tuinity
++        // com.tuinity.tuinity.util.TickThread.softEnsureTickThread("Tracker update"); // Tuinity // Hydrinity
+         List<Entity> list = this.tracker.getPassengers();
+ 
+         if (!list.equals(this.p)) {
+@@ -88,6 +88,7 @@ public class EntityTrackerEntry {
+             ItemStack itemstack = entityitemframe.getItem();
+ 
+             if (this.tickCounter % 10 == 0 && itemstack.getItem() instanceof ItemWorldMap) { // CraftBukkit - Moved this.tickCounter % 10 logic here so item frames do not enter the other blocks
++                MCUtil.ensureMain(() -> { // Hydrinity start - handle maps on main
+                 WorldMap worldmap = ItemWorldMap.getSavedMap(itemstack, this.b);
+                 Iterator iterator = this.trackedPlayers.iterator(); // CraftBukkit
+ 
+@@ -101,6 +102,7 @@ public class EntityTrackerEntry {
+                         entityplayer.playerConnection.sendPacket(packet);
+                     }
+                 }
++                }); // Hydrinity end
+             }
+ 
+             this.c();
+@@ -233,6 +235,7 @@ public class EntityTrackerEntry {
+         ++this.tickCounter;
+         if (this.tracker.velocityChanged) {
+             // CraftBukkit start - Create PlayerVelocity event
++            MCUtil.ensureMain(() -> { // Hydrinity start - fire velocity event on main
+             boolean cancelled = false;
+ 
+             if (this.tracker instanceof EntityPlayer) {
+@@ -252,6 +255,7 @@ public class EntityTrackerEntry {
+             if (!cancelled) {
+                 this.broadcastIncludingSelf(new PacketPlayOutEntityVelocity(this.tracker));
+             }
++            }); // Hydrinity end
+             // CraftBukkit end
+             this.tracker.velocityChanged = false;
+         }
+diff --git a/src/main/java/net/minecraft/server/PlayerChunkMap.java b/src/main/java/net/minecraft/server/PlayerChunkMap.java
+index c72ca2a6ad76f2956350b488b4909495b9d2302e..d5c35c801a57b8ca95d0b1e9c381b7bc98f3393d 100644
+--- a/src/main/java/net/minecraft/server/PlayerChunkMap.java
++++ b/src/main/java/net/minecraft/server/PlayerChunkMap.java
+@@ -117,6 +117,7 @@ public class PlayerChunkMap extends IChunkLoader implements PlayerChunk.d {
+     private final Queue<Runnable> A; private final Queue<Runnable> getUnloadQueueTasks() { return this.A; } // Paper - OBFHELPER
+     int viewDistance; // Paper - private -> package private
+     public final com.destroystokyo.paper.util.PlayerMobDistanceMap playerMobDistanceMap; // Paper
++    private static final java.util.concurrent.ExecutorService trackerExecutor = java.util.concurrent.Executors.newCachedThreadPool(new com.google.common.util.concurrent.ThreadFactoryBuilder().setDaemon(true).setNameFormat("Entity Tracker - %d").build()); // Hydrinity - async entity tracker
+ 
+     // CraftBukkit start - recursion-safe executor for Chunk loadCallback() and unloadCallback()
+     public final CallbackExecutor callbackExecutor = new CallbackExecutor();
+@@ -301,7 +302,7 @@ public class PlayerChunkMap extends IChunkLoader implements PlayerChunk.d {
+         this.unloadQueue = new LongOpenHashSet();
+         this.u = new AtomicInteger();
+         this.playerMap = new PlayerMap();
+-        this.trackedEntities = new Int2ObjectOpenHashMap();
++        this.trackedEntities = new xyz.nkomarn.hydrinity.map.ConcurrentTrackerMap<>(); // Hydrinity
+         this.z = new Long2ByteOpenHashMap();
+         this.A = new com.destroystokyo.paper.utils.CachedSizeConcurrentLinkedQueue<>(); // Paper - need constant-time size()
+         this.definedStructureManager = definedstructuremanager;
+@@ -2006,7 +2007,7 @@ public class PlayerChunkMap extends IChunkLoader implements PlayerChunk.d {
+     }
+ 
+     protected void addEntity(Entity entity) {
+-        org.spigotmc.AsyncCatcher.catchOp("entity track"); // Spigot
++        // org.spigotmc.AsyncCatcher.catchOp("entity track"); // Spigot // Hydrinity
+         // Paper start - ignore and warn about illegal addEntity calls instead of crashing server
+         if (!entity.valid || entity.world != this.world || this.trackedEntities.containsKey(entity.getId())) {
+             new Throwable("[ERROR] Illegal PlayerChunkMap::addEntity for world " + this.world.getWorld().getName()
+@@ -2050,7 +2051,7 @@ public class PlayerChunkMap extends IChunkLoader implements PlayerChunk.d {
+     }
+ 
+     protected void removeEntity(Entity entity) {
+-        org.spigotmc.AsyncCatcher.catchOp("entity untrack"); // Spigot
++        // org.spigotmc.AsyncCatcher.catchOp("entity untrack"); // Spigot // Hydrinity
+         if (entity instanceof EntityPlayer) {
+             EntityPlayer entityplayer = (EntityPlayer) entity;
+ 
+@@ -2102,6 +2103,18 @@ public class PlayerChunkMap extends IChunkLoader implements PlayerChunk.d {
+     protected void g() {
+         // Paper start - optimized tracker
+         if (true) {
++            // Hydrinity start - async entity tracker
++            if (xyz.nkomarn.hydrinity.HydrinityConfig.asyncEntityTracker) {
++                trackerExecutor.execute(() -> {
++                    for (var tracker : trackedEntities.values()) {
++                        var entity = tracker.tracker;
++                        if (entity == null) continue;
++                        tracker.updatePlayers(entity.getPlayersInTrackRange());
++                        tracker.trackerEntry.tick();
++                    }
++                });
++            } else
++            // Hydrinity end
+             this.processTrackQueue();
+             return;
+         }
+@@ -2343,7 +2356,7 @@ Sections go from 0..16. Now whenever a section is not empty, it can potentially
+         // Paper start
+         // Replace trackedPlayers Set with a Map. The value is true until the player receives
+         // their first update (which is forced to have absolute coordinates), false afterward.
+-        public java.util.Map<EntityPlayer, Boolean> trackedPlayerMap = new java.util.HashMap<>();
++        public java.util.Map<EntityPlayer, Boolean> trackedPlayerMap = new java.util.concurrent.ConcurrentHashMap<>(); // Hydrinity
+         public Set<EntityPlayer> trackedPlayers = trackedPlayerMap.keySet();
+ 
+         public EntityTracker(Entity entity, int i, int j, boolean flag) {
+@@ -2428,7 +2441,7 @@ Sections go from 0..16. Now whenever a section is not empty, it can potentially
+         }
+ 
+         public void clear(EntityPlayer entityplayer) {
+-            org.spigotmc.AsyncCatcher.catchOp("player tracker clear"); // Spigot
++            // org.spigotmc.AsyncCatcher.catchOp("player tracker clear"); // Spigot // Hydrinity
+             if (this.trackedPlayers.remove(entityplayer)) {
+                 this.trackerEntry.a(entityplayer);
+             }
+@@ -2436,7 +2449,7 @@ Sections go from 0..16. Now whenever a section is not empty, it can potentially
+         }
+ 
+         public void updatePlayer(EntityPlayer entityplayer) {
+-            org.spigotmc.AsyncCatcher.catchOp("player tracker update"); // Spigot
++            // org.spigotmc.AsyncCatcher.catchOp("player tracker update"); // Spigot // Hydrinity
+             if (entityplayer != this.tracker) {
+                 // Paper start - remove allocation of Vec3D here
+                 //Vec3D vec3d = entityplayer.getPositionVector().d(this.tracker.getPositionVector()); // MC-155077, SPIGOT-5113
+diff --git a/src/main/java/net/minecraft/server/PlayerConnection.java b/src/main/java/net/minecraft/server/PlayerConnection.java
+index 29d52444286756167ef40fb5eb684aa20a27f11a..c75ec809a3540814c744fe996f8f20144e5b535c 100644
+--- a/src/main/java/net/minecraft/server/PlayerConnection.java
++++ b/src/main/java/net/minecraft/server/PlayerConnection.java
+@@ -1613,6 +1613,7 @@ public class PlayerConnection implements PacketListenerPlayIn {
+     }
+ 
+     public void sendPacket(Packet<?> packet) {
++        if (!minecraftServer.isMainThread()) minecraftServer.processQueue.add(() -> sendPacket(packet)); else // Hydrinity - async entity tracker
+         this.a(packet, (GenericFutureListener) null);
+     }
+ 
+diff --git a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
+index 0945c7affd6a3f7a9636b3efded9ff408a8400db..1a7acd4648d32a1698114034a5f838525ea4d5f1 100644
+--- a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
++++ b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
+@@ -106,6 +106,11 @@ public class HydrinityConfig {
+         fireBlockPhysicsEvent = getBoolean("settings.fire-block-physics-event", true);
+     }
+ 
++    public static boolean asyncEntityTracker = true;
++    private static void asyncEntityTracker() {
++        asyncEntityTracker = getBoolean("settings.async-entity-tracker", true);
++    }
++
+     public static boolean criterionTriggerLocation = true;
+     public static boolean criterionTriggerEnterBlock = true;
+     public static boolean criterionTriggerTick = true;
