@@ -23,7 +23,7 @@ index f6247332a0af1a4884f3eec0089486e265870773..c5d302f5a7607366b3312753f6baa064
  
              this.methodProfiler.a(() -> {
 diff --git a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
-index baf75f0780550a0292169bbe8c76bd6f4bca5ee8..cee349e2a17a20a6c0a895d328cb9b4511db569e 100644
+index bbfd1162e59e2d747bc77ff86a6516c8245921e2..0945c7affd6a3f7a9636b3efded9ff408a8400db 100644
 --- a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
 +++ b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
 @@ -101,6 +101,11 @@ public class HydrinityConfig {

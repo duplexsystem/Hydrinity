@@ -1,26 +1,48 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Mykyta Komarnytskyy <nkomarn@hotmail.com>
 Date: Thu, 22 Oct 2020 19:21:44 -0700
-Subject: [PATCH] Configurable suffocation check interval
+Subject: [PATCH] Configurable entity check intervals
 
-This patch adds a configuration option for how often the game checks if an entity should take suffocation damage. These checks use some fairly heavy block collision code and can be slowed down safely, improving overall entity performance substantially.
+This patch adds a configuration options for how often the game runs some base entity checks. This includes suffocation damage and water checks. Suffocation checks use some fairly heavy block collision code and can be slowed down safely, improving overall entity performance substantially. Water checks can also be slowed down to bring moderate entity performance improvements.
 
-A side effect of increasing the interval is slower suffocation damage. I find that a value of 10 works pretty well, but you can get away with 20 as well.
+A side effect of increasing the interval is slower suffocation damage. I find that a value of 10 works pretty well, but you can get away with 20 as well. Water checks seem balanced with a value of 10-20.
 
 This patch was created for the Hydrinity project <https://github.com/Hydrinity/Hydrinity> by Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
 
 diff --git a/src/main/java/net/minecraft/server/Entity.java b/src/main/java/net/minecraft/server/Entity.java
-index b424f96b25f23a038ccf26eece8f0d1924224e85..a32b07a167ea5eed2fa14679faba9372d5a5737a 100644
+index b424f96b25f23a038ccf26eece8f0d1924224e85..3a4d7979ac1f348932e72df3a336e96de3bea4e3 100644
 --- a/src/main/java/net/minecraft/server/Entity.java
 +++ b/src/main/java/net/minecraft/server/Entity.java
-@@ -1335,6 +1335,7 @@ public abstract class Entity implements INamableTileEntity, ICommandListener, Ke
+@@ -1334,14 +1334,19 @@ public abstract class Entity implements INamableTileEntity, ICommandListener, Ke
+ 
      }
  
++    // Hydrinity start
++    private boolean cachedFlag;
      protected boolean aJ() {
-+        if (xyz.nkomarn.hydrinity.util.MathUtils.fastMod(ticksLived, xyz.nkomarn.hydrinity.HydrinityConfig.entityWaterCheck) != 0) return false; // Hydrinity - configurable entity water check interval
++        if (xyz.nkomarn.hydrinity.util.MathUtils.fastMod(ticksLived, xyz.nkomarn.hydrinity.HydrinityConfig.entityWaterCheck) != 0) {
          this.M.clear();
          this.aK();
          double d0 = this.world.getDimensionManager().isNether() ? 0.007D : 0.0023333333333333335D;
+-        boolean flag = this.a((Tag) TagsFluid.LAVA, d0);
++        cachedFlag = this.a((Tag) TagsFluid.LAVA, d0);
++        }
+ 
+-        return this.isInWater() || flag;
++        return this.isInWater() || cachedFlag;
+     }
++    // Hydrinity end
+ 
+     void aK() {
+         if (this.getVehicle() instanceof EntityBoat) {
+@@ -1361,6 +1366,7 @@ public abstract class Entity implements INamableTileEntity, ICommandListener, Ke
+     }
+ 
+     private void m() {
++        if (xyz.nkomarn.hydrinity.util.MathUtils.fastMod(ticksLived, xyz.nkomarn.hydrinity.HydrinityConfig.entitySubmergedCheck) != 0) return; // Hydrinity
+         this.N = this.a((Tag) TagsFluid.WATER);
+         this.O = null;
+         double d0 = this.getHeadY() - 0.1111111119389534D;
 diff --git a/src/main/java/net/minecraft/server/EntityLiving.java b/src/main/java/net/minecraft/server/EntityLiving.java
 index 9ee74a39cbb624d6893045d4eed9624a616f78f8..887a2f613c2ac759a3ccdc773978897c81e6b469 100644
 --- a/src/main/java/net/minecraft/server/EntityLiving.java
@@ -35,19 +57,21 @@ index 9ee74a39cbb624d6893045d4eed9624a616f78f8..887a2f613c2ac759a3ccdc773978897c
              } else if (flag && !this.world.getWorldBorder().a(this.getBoundingBox())) {
                  double d0 = this.world.getWorldBorder().a((Entity) this) + this.world.getWorldBorder().getDamageBuffer();
 diff --git a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
-index be4c231c77a2e64d89071f048241876be29c4046..baf75f0780550a0292169bbe8c76bd6f4bca5ee8 100644
+index be4c231c77a2e64d89071f048241876be29c4046..bbfd1162e59e2d747bc77ff86a6516c8245921e2 100644
 --- a/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
 +++ b/src/main/java/xyz/nkomarn/hydrinity/HydrinityConfig.java
-@@ -111,8 +111,12 @@ public class HydrinityConfig {
+@@ -111,8 +111,14 @@ public class HydrinityConfig {
      }
  
      public static int playerTimeStatisticsInterval = 1;
 +    public static int entitySuffocationCheck = 1;
 +    public static int entityWaterCheck = 1;
++    public static int entitySubmergedCheck = 1;
      private static void intervals() {
          playerTimeStatisticsInterval = Math.max(1, getInt("settings.intervals.player-time-statistics", 1));
 +        entitySuffocationCheck = Math.max(1, getInt("settings.intervals.entity-suffocation-check", 1));
 +        entityWaterCheck = Math.max(1, getInt("settings.intervals.entity-water-check", 1));
++        entitySubmergedCheck = Math.max(1, getInt("settings.intervals.entity-submerged-check", 1));
      }
  
      public static final class WorldConfig {
