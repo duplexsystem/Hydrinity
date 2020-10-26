@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mykyta Komarnytskyy <nkomarn@hotmail.com>
+Date: Mon, 26 Oct 2020 08:22:33 -0700
+Subject: [PATCH] Don't try to spawn players
+
+I use player spawners to represent "blank" spawners on my server. I chose player spawners specifically because no mob renders in the mob cage, and nothing spawns, giving the illusion that it's actually a blank spawner`.
+However, the game still ticks these "blank" spawners and tries to spawn players, resulting in "Skipping Entity with id minecraft:player" constantly printing in console whenever one of these blank spawners is placed down and tries to spawn.
+This patch simply stops the spawning process as soon as it sees a player entity is about to be spawned.
+
+This patch was created for the Hydrinity project <https://github.com/Hydrinity/Hydrinity> by Mykyta Komarnytskyy <nkomarn@hotmail.com> under the MIT license.
+
+diff --git a/src/main/java/net/minecraft/server/MobSpawnerAbstract.java b/src/main/java/net/minecraft/server/MobSpawnerAbstract.java
+index c2e830db7aa2944a477624e149a3ba66d112b68a..f76d580e397406756b2001801c13810255c7d819 100644
+--- a/src/main/java/net/minecraft/server/MobSpawnerAbstract.java
++++ b/src/main/java/net/minecraft/server/MobSpawnerAbstract.java
+@@ -114,6 +114,7 @@ public abstract class MobSpawnerAbstract {
+                             String key = EntityTypes.getName(entityType).getKey();
+ 
+                             org.bukkit.entity.EntityType type = org.bukkit.entity.EntityType.fromName(key);
++                            if (type == org.bukkit.entity.EntityType.PLAYER) return; // Hydrinity - don't try to spawn players
+                             if (type != null) {
+                         com.destroystokyo.paper.event.entity.PreSpawnerSpawnEvent event;
+                         event = new com.destroystokyo.paper.event.entity.PreSpawnerSpawnEvent(
